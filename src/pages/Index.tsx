@@ -70,24 +70,26 @@ const Index = () => {
                 </h1>
               </div>
 
-              {/* Context Panel - CV Upload */}
-              <label className="glass-panel rounded-xl px-4 py-3 flex items-center gap-3 min-w-[280px] cursor-pointer hover:border-primary/50 transition-all">
-                <Upload className="w-5 h-5 text-primary" />
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <div className="flex-1 flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {cvFile ? cvFile.name : "Upload CV Context"}
-                  </span>
-                  {cvFile && (
-                    <span className="text-xs text-accent">✓ Loaded</span>
-                  )}
-                </div>
-              </label>
+              {/* Context Panel - CV Upload - Only show before starting search */}
+              {!searchStarted && (
+                <label className="glass-panel rounded-xl px-4 py-3 flex items-center gap-3 min-w-[280px] cursor-pointer hover:border-primary/50 transition-all">
+                  <Upload className="w-5 h-5 text-primary" />
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {cvFile ? cvFile.name : "Upload CV Context"}
+                    </span>
+                    {cvFile && (
+                      <span className="text-xs text-accent">✓ Loaded</span>
+                    )}
+                  </div>
+                </label>
+              )}
             </div>
           </header>
         )}
