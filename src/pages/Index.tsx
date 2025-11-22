@@ -6,11 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import GraphVisualization from "@/components/GraphVisualization";
-import { GraphData, StepLog } from "@/services/api";
+import { GraphData, StepLog, uploadCV, startAgentRun } from "@/services/api";
 import { ReasoningConsole } from "@/components/ReasoningConsole";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvId, setCvId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [maxNodes, setMaxNodes] = useState("20");
   const [isSearching, setIsSearching] = useState(false);
@@ -19,21 +21,58 @@ const Index = () => {
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [reasoningSteps, setReasoningSteps] = useState<StepLog[]>([]);
+  const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const { toast } = useToast();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setCvFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setCvFile(file);
+
+      // Upload CV immediately
+      setIsUploadingCV(true);
+      try {
+        const result = await uploadCV(file);
+        setCvId(result.cv_id);
+        toast({
+          title: "CV Uploaded",
+          description: `${result.filename} has been uploaded successfully.`,
+        });
+      } catch (error) {
+        console.error("Failed to upload CV:", error);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload CV. Please try again.",
+          variant: "destructive",
+        });
+        setCvFile(null);
+      } finally {
+        setIsUploadingCV(false);
+      }
     }
   };
 
-  const handleStartDiscovery = () => {
+  const handleStartDiscovery = async () => {
     if (!query.trim()) return;
+
     setSearchStarted(true);
     setIsSearching(true);
     setIsComplete(false);
     setGraphData(null);
-    // Generate a mock run ID or get from API
-    setRunId(`run-${Date.now()}`);
+
+    try {
+      const result = await startAgentRun(query, parseInt(maxNodes), cvId || undefined);
+      setRunId(result.run_id);
+    } catch (error) {
+      console.error("Failed to start agent run:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start discovery. Please try again.",
+        variant: "destructive",
+      });
+      setSearchStarted(false);
+      setIsSearching(false);
+    }
   };
 
   const handleReset = () => {
@@ -44,6 +83,8 @@ const Index = () => {
     setGraphData(null);
     setRunId(null);
     setReasoningSteps([]);
+    setCvFile(null);
+    setCvId(null);
   };
 
   const handleDiscoveryComplete = (data: GraphData, steps: StepLog[]) => {
@@ -79,12 +120,13 @@ const Index = () => {
                     accept=".pdf"
                     onChange={handleFileUpload}
                     className="hidden"
+                    disabled={isUploadingCV}
                   />
                   <div className="flex-1 flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">
-                      {cvFile ? cvFile.name : "Upload CV Context"}
+                      {isUploadingCV ? "Uploading..." : cvFile ? cvFile.name : "Upload CV Context"}
                     </span>
-                    {cvFile && (
+                    {cvFile && !isUploadingCV && (
                       <span className="text-xs text-accent">✓ Loaded</span>
                     )}
                   </div>
