@@ -497,7 +497,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <Button
                                     variant="outline"
-                                    className="h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 transition-all"
+                                    className="h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 hover:text-white transition-all"
                                     onClick={() => handleGenerateEmail('reach_out')}
                                 >
                                     <User className="w-6 h-6 text-primary" />
@@ -505,7 +505,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    className="h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 transition-all"
+                                    className="h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 hover:text-white transition-all"
                                     onClick={() => handleGenerateEmail('colab')}
                                 >
                                     <Network className="w-6 h-6 text-primary" />
