@@ -1,14 +1,15 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import ForceGraph3D from 'react-force-graph-3d';
-import { GraphData, GraphNode, GraphLink, generateEmail, sendEmail } from '../services/api';
+import { GraphData, GraphNode, GraphLink, generateEmail, sendEmail, sendMessage } from '../services/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ExternalLink, Mail, Building, User, FileText, Network, Loader2, Send } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { ExternalLink, Mail, Building, User, FileText, Network, Loader2, Send, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import SpriteText from 'three-spritetext';
 
 interface GraphVisualizationProps {
@@ -30,6 +31,37 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
     const [emailStep, setEmailStep] = useState<'selection' | 'generating' | 'editing'>('selection');
     const [generatedEmail, setGeneratedEmail] = useState("");
     const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+    // Chat State
+    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
+    const [chatInput, setChatInput] = useState("");
+    const [isChatExpanded, setIsChatExpanded] = useState(false);
+    const [isChatLoading, setIsChatLoading] = useState(false);
+    const chatScrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (chatScrollRef.current) {
+            chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+    }, [chatMessages, isChatExpanded]);
+
+    const handleSendMessage = async () => {
+        if (!chatInput.trim() || !selectedNode) return;
+
+        const userMsg = chatInput;
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+        setChatInput("");
+        setIsChatLoading(true);
+
+        try {
+            const response = await sendMessage(userMsg, selectedNode.name);
+            setChatMessages(prev => [...prev, { role: 'bot', content: response.content }]);
+        } catch (error) {
+            console.error("Failed to send message", error);
+        } finally {
+            setIsChatLoading(false);
+        }
+    };
 
     const handleGenerateEmail = async (type: 'reach_out' | 'colab') => {
         if (!selectedNode) return;
@@ -286,147 +318,217 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                         onMouseDown={startResizing}
                     />
 
-                    <div className="h-full overflow-y-auto pr-2">
-                        <SheetHeader>
-                            <SheetTitle className="flex items-center gap-2 text-xl font-display text-primary">
-                                {selectedNode && getNodeIcon(selectedNode.type)}
-                                {selectedNode?.name}
-                            </SheetTitle>
-                            <SheetDescription className="text-muted-foreground">
-                                {selectedNode?.type === 'professor' ? 'Professor' : selectedNode?.type === 'laboratory' ? 'Laboratory' : 'Person'}
-                                {selectedNode?.institution && ` • ${selectedNode.institution}`}
-                            </SheetDescription>
-                        </SheetHeader>
+                    <div className="flex flex-col h-full">
+                        <div className="flex-1 overflow-y-auto pr-2 pb-20">
+                            <SheetHeader>
+                                <SheetTitle className="flex items-center gap-2 text-xl font-display text-primary">
+                                    {selectedNode && getNodeIcon(selectedNode.type)}
+                                    {selectedNode?.name}
+                                </SheetTitle>
+                                <SheetDescription className="text-muted-foreground">
+                                    {selectedNode?.type === 'professor' ? 'Professor' : selectedNode?.type === 'laboratory' ? 'Laboratory' : 'Person'}
+                                    {selectedNode?.institution && ` • ${selectedNode.institution}`}
+                                </SheetDescription>
+                            </SheetHeader>
 
-                        {selectedNode && (
-                            <div className="mt-6">
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-medium text-foreground">Description</h4>
-                                        <p className="text-sm text-muted-foreground leading-relaxed">
-                                            {selectedNode.description}
-                                        </p>
-                                    </div>
-
-                                    {/* Stats Section */}
-                                    {(selectedNode.works_count !== undefined || selectedNode.cited_by_count !== undefined || selectedNode.h_index !== undefined) && (
-                                        <div className="grid grid-cols-3 gap-4 py-4 border-y border-border/50">
-                                            {selectedNode.works_count !== undefined && (
-                                                <div className="text-center">
-                                                    <div className="text-2xl font-bold text-primary">{selectedNode.works_count}</div>
-                                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Works</div>
-                                                </div>
-                                            )}
-                                            {selectedNode.cited_by_count !== undefined && (
-                                                <div className="text-center border-l border-border/50">
-                                                    <div className="text-2xl font-bold text-primary">{selectedNode.cited_by_count}</div>
-                                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Citations</div>
-                                                </div>
-                                            )}
-                                            {selectedNode.h_index !== undefined && (
-                                                <div className="text-center border-l border-border/50">
-                                                    <div className="text-2xl font-bold text-primary">{selectedNode.h_index}</div>
-                                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">H-Index</div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Contacts */}
-                                    {(selectedNode.contacts?.email || selectedNode.contacts?.website || selectedNode.link_orcid) && (
+                            {selectedNode && (
+                                <div className="mt-6">
+                                    <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <h4 className="text-sm font-medium text-foreground">Contact & Links</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {selectedNode.contacts?.email && (
-                                                    <a href={`mailto:${selectedNode.contacts.email}`} className="no-underline">
-                                                        <Badge variant="outline" className="gap-1 hover:bg-primary/10 transition-colors cursor-pointer">
-                                                            <Mail className="w-3 h-3" />
-                                                            {selectedNode.contacts.email}
-                                                        </Badge>
-                                                    </a>
+                                            <h4 className="text-sm font-medium text-foreground">Description</h4>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {selectedNode.description}
+                                            </p>
+                                        </div>
+
+                                        {/* Stats Section */}
+                                        {(selectedNode.works_count !== undefined || selectedNode.cited_by_count !== undefined || selectedNode.h_index !== undefined) && (
+                                            <div className="grid grid-cols-3 gap-4 py-4 border-y border-border/50">
+                                                {selectedNode.works_count !== undefined && (
+                                                    <div className="text-center">
+                                                        <div className="text-2xl font-bold text-primary">{selectedNode.works_count}</div>
+                                                        <div className="text-xs text-muted-foreground uppercase tracking-wider">Works</div>
+                                                    </div>
                                                 )}
-                                                {selectedNode.contacts?.website && (
-                                                    <a href={selectedNode.contacts.website} target="_blank" rel="noopener noreferrer" className="no-underline">
-                                                        <Badge variant="outline" className="gap-1 hover:bg-primary/10 transition-colors cursor-pointer">
-                                                            <ExternalLink className="w-3 h-3" />
-                                                            Website
-                                                        </Badge>
-                                                    </a>
+                                                {selectedNode.cited_by_count !== undefined && (
+                                                    <div className="text-center border-l border-border/50">
+                                                        <div className="text-2xl font-bold text-primary">{selectedNode.cited_by_count}</div>
+                                                        <div className="text-xs text-muted-foreground uppercase tracking-wider">Citations</div>
+                                                    </div>
                                                 )}
-                                                {selectedNode.link_orcid && (
-                                                    <a href={selectedNode.link_orcid} target="_blank" rel="noopener noreferrer" className="no-underline">
-                                                        <Badge variant="outline" className="gap-1 hover:bg-primary/10 transition-colors cursor-pointer">
-                                                            <span className="font-bold text-[10px]">iD</span>
-                                                            ORCID
-                                                        </Badge>
-                                                    </a>
+                                                {selectedNode.h_index !== undefined && (
+                                                    <div className="text-center border-l border-border/50">
+                                                        <div className="text-2xl font-bold text-primary">{selectedNode.h_index}</div>
+                                                        <div className="text-xs text-muted-foreground uppercase tracking-wider">H-Index</div>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* Papers */}
-                                    {selectedNode.papers && selectedNode.papers.length > 0 && (
-                                        <div className="space-y-3">
-                                            <h4 className="text-sm font-medium text-foreground">Papers & Publications</h4>
-                                            <div className="flex flex-col gap-2">
-                                                {selectedNode.papers.map((paper, idx) => (
-                                                    <div key={idx} className="p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
-                                                        <div className="flex justify-between items-start gap-2">
-                                                            <div className="flex flex-col gap-0.5">
-                                                                <h5 className="text-sm font-medium text-foreground leading-snug">{paper.title}</h5>
-                                                                {paper.topic && (
-                                                                    <span className="text-xs text-muted-foreground font-medium">{paper.topic}</span>
+                                        {/* Contacts */}
+                                        {(selectedNode.contacts?.email || selectedNode.contacts?.website || selectedNode.link_orcid) && (
+                                            <div className="space-y-2">
+                                                <h4 className="text-sm font-medium text-foreground">Contact & Links</h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedNode.contacts?.email && (
+                                                        <a href={`mailto:${selectedNode.contacts.email}`} className="no-underline">
+                                                            <Badge variant="outline" className="gap-1 hover:bg-primary/10 transition-colors cursor-pointer">
+                                                                <Mail className="w-3 h-3" />
+                                                                {selectedNode.contacts.email}
+                                                            </Badge>
+                                                        </a>
+                                                    )}
+                                                    {selectedNode.contacts?.website && (
+                                                        <a href={selectedNode.contacts.website} target="_blank" rel="noopener noreferrer" className="no-underline">
+                                                            <Badge variant="outline" className="gap-1 hover:bg-primary/10 transition-colors cursor-pointer">
+                                                                <ExternalLink className="w-3 h-3" />
+                                                                Website
+                                                            </Badge>
+                                                        </a>
+                                                    )}
+                                                    {selectedNode.link_orcid && (
+                                                        <a href={selectedNode.link_orcid} target="_blank" rel="noopener noreferrer" className="no-underline">
+                                                            <Badge variant="outline" className="gap-1 hover:bg-primary/10 transition-colors cursor-pointer">
+                                                                <span className="font-bold text-[10px]">iD</span>
+                                                                ORCID
+                                                            </Badge>
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Papers */}
+                                        {selectedNode.papers && selectedNode.papers.length > 0 && (
+                                            <div className="space-y-3">
+                                                <h4 className="text-sm font-medium text-foreground">Papers & Publications</h4>
+                                                <div className="flex flex-col gap-2">
+                                                    {selectedNode.papers.map((paper, idx) => (
+                                                        <div key={idx} className="p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
+                                                            <div className="flex justify-between items-start gap-2">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <h5 className="text-sm font-medium text-foreground leading-snug">{paper.title}</h5>
+                                                                    {paper.topic && (
+                                                                        <span className="text-xs text-muted-foreground font-medium">{paper.topic}</span>
+                                                                    )}
+                                                                </div>
+                                                                {paper.publication_year && (
+                                                                    <span className="text-xs text-muted-foreground whitespace-nowrap px-1.5 py-0.5 rounded bg-background border border-border/50">
+                                                                        {paper.publication_year}
+                                                                    </span>
                                                                 )}
                                                             </div>
-                                                            {paper.publication_year && (
-                                                                <span className="text-xs text-muted-foreground whitespace-nowrap px-1.5 py-0.5 rounded bg-background border border-border/50">
-                                                                    {paper.publication_year}
-                                                                </span>
-                                                            )}
-                                                        </div>
 
-                                                        <div className="flex items-center gap-4 mt-3">
-                                                            {paper.link && (
-                                                                <a
-                                                                    href={paper.link}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                                                                >
-                                                                    View Paper <ExternalLink className="w-3 h-3" />
-                                                                </a>
-                                                            )}
-                                                            {paper.abstract && (
-                                                                <button
-                                                                    onClick={() => setSelectedAbstract({ title: paper.title, content: paper.abstract!, link: paper.link })}
-                                                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
-                                                                >
-                                                                    Read Abstract <FileText className="w-3 h-3" />
-                                                                </button>
-                                                            )}
+                                                            <div className="flex items-center gap-4 mt-3">
+                                                                {paper.link && (
+                                                                    <a
+                                                                        href={paper.link}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                                                    >
+                                                                        View Paper <ExternalLink className="w-3 h-3" />
+                                                                    </a>
+                                                                )}
+                                                                {paper.abstract && (
+                                                                    <button
+                                                                        onClick={() => setSelectedAbstract({ title: paper.title, content: paper.abstract!, link: paper.link })}
+                                                                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+                                                                    >
+                                                                        Read Abstract <FileText className="w-3 h-3" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    ))}
+                                                </div>
                                             </div>
+
+                                        )}
+
+                                        {/* Email Action */}
+                                        <div className="pt-4 border-t border-border/50">
+                                            <Button
+                                                variant="outline"
+                                                className="w-full gap-2 border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors"
+                                                onClick={() => setIsEmailDialogOpen(true)}
+                                            >
+                                                <Mail className="w-4 h-4" />
+                                                Drop an email
+                                            </Button>
                                         </div>
-
-                                    )}
-
-                                    {/* Email Action */}
-                                    <div className="pt-4 border-t border-border/50">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full gap-2 border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors"
-                                            onClick={() => setIsEmailDialogOpen(true)}
-                                        >
-                                            <Mail className="w-4 h-4" />
-                                            Drop an email
-                                        </Button>
                                     </div>
                                 </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Chat Interface */}
+                    <div
+                        className={`absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-primary/20 transition-all duration-300 ease-in-out ${isChatExpanded ? 'h-[400px]' : 'h-[80px]'}`}
+                    >
+                        <div className="flex flex-col h-full p-4">
+                            {/* Expand/Collapse Handle */}
+                            <div
+                                className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-muted rounded-full cursor-pointer hover:bg-primary/50 transition-colors"
+                                onClick={() => setIsChatExpanded(!isChatExpanded)}
+                            />
+
+                            {isChatExpanded && (
+                                <div
+                                    ref={chatScrollRef}
+                                    className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2"
+                                >
+                                    {chatMessages.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
+                                            <MessageSquare className="w-8 h-8 mb-2" />
+                                            <p className="text-sm">Ask anything about {selectedNode?.name}...</p>
+                                        </div>
+                                    )}
+                                    {chatMessages.map((msg, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                        >
+                                            <div
+                                                className={`max-w-[80%] p-3 rounded-lg text-sm ${msg.role === 'user'
+                                                        ? 'bg-primary text-primary-foreground rounded-br-none'
+                                                        : 'bg-muted text-foreground rounded-bl-none'
+                                                    }`}
+                                            >
+                                                {msg.content}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {isChatLoading && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-muted p-3 rounded-lg rounded-bl-none">
+                                                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="mt-auto flex gap-2 items-center">
+                                <Input
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onFocus={() => setIsChatExpanded(true)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    placeholder="What do you want to know about this researcher...?"
+                                    className="flex-1 bg-background/50 border-primary/20 focus:border-primary"
+                                />
+                                <Button
+                                    size="icon"
+                                    onClick={handleSendMessage}
+                                    disabled={!chatInput.trim() || isChatLoading}
+                                    className="shrink-0"
+                                >
+                                    <Send className="w-4 h-4" />
+                                </Button>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </SheetContent>
             </Sheet>

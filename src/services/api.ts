@@ -391,3 +391,17 @@ export const sendEmail = async (content: string): Promise<{ success: boolean }> 
         }, 1000);
     });
 };
+
+export const sendMessage = async (text: string, nodeName: string): Promise<{ content: string }> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const responses = [
+                `Based on my analysis of ${nodeName}'s work, I can tell you that...`,
+                `${nodeName} has primarily focused on this area. Specifically...`,
+                `That's an interesting question. ${nodeName}'s latest paper addresses this by...`
+            ];
+            const content = responses[Math.floor(Math.random() * responses.length)];
+            resolve({ content });
+        }, 1500);
+    });
+};
