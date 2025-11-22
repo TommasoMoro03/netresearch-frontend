@@ -140,4 +140,28 @@ All colors MUST be HSL.
   .terminal-scroll::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary) / 0.5);
   }
+
+  .black-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #000000 transparent;
+  }
+
+  .black-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .black-scroll::-webkit-scrollbar-track {
+    background: #000000;
+  }
+
+  .black-scroll::-webkit-scrollbar-thumb {
+    background: #000000;
+    border-radius: 4px;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .black-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted));
+  }
 }

@@ -107,7 +107,7 @@ const Index = () => {
                   <Brain className="w-6 h-6 text-primary" />
                 </div>
                 <h1 className="text-2xl font-display font-bold neon-text">
-                  DeepScience Agent
+                  NetResearch
                 </h1>
               </div>
 
@@ -143,11 +143,11 @@ const Index = () => {
             <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8 animate-slide-up">
               <div className="text-center space-y-4 max-w-3xl">
                 <h2 className="text-5xl font-display font-bold tracking-tight">
-                  Explore the Research Graph
+                  Explore your Research Network
                 </h2>
                 <p className="text-xl text-muted-foreground">
                   Ask questions about researchers, papers, and discover hidden connections
-                  in the academic world
+                  in your research network.
                 </p>
               </div>
 
@@ -161,7 +161,7 @@ const Index = () => {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleStartDiscovery()}
-                      placeholder="Ask a research question (e.g., 'Who works on Diffusion Models in Europe?')"
+                      placeholder="Share your research interests (e.g., 'Who works on Diffusion Models in Europe?')"
                       className="pl-12 pr-4 py-6 text-lg bg-input/50 border-border/50 focus:border-primary transition-all"
                     />
                   </div>
@@ -169,7 +169,7 @@ const Index = () => {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 flex-1">
                       <Database className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Max Nodes:</span>
+                      <span className="text-sm text-muted-foreground">Max Connections:</span>
                       <Select value={maxNodes} onValueChange={setMaxNodes}>
                         <SelectTrigger className="w-24 bg-input/50 border-border/50">
                           <SelectValue />
@@ -206,7 +206,7 @@ const Index = () => {
                     <Brain className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-display font-bold text-primary">Research Graph</h2>
+                    <h2 className="text-lg font-display font-bold text-primary">Your NetResearch</h2>
                     <p className="text-xs text-muted-foreground">{query}</p>
                   </div>
                 </div>

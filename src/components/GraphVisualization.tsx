@@ -46,6 +46,13 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         }
     }, [chatMessages, chatHeight]);
 
+    // Reset chat when node changes
+    useEffect(() => {
+        setChatMessages([]);
+        setChatInput("");
+        setChatHeight(80);
+    }, [selectedNode]);
+
     const hasChatResized = useRef(false);
 
     const startChatResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
@@ -365,7 +372,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                     />
 
                     <div className="flex flex-col h-full overflow-hidden">
-                        <div className="flex-1 overflow-y-auto pr-2">
+                        <div className={`flex-1 overflow-y-auto pr-2 ${chatHeight > 100 ? 'black-scroll' : ''}`}>
                             <SheetHeader>
                                 <SheetTitle className="flex items-center gap-2 text-xl font-display text-primary">
                                     {selectedNode && getNodeIcon(selectedNode.type)}
