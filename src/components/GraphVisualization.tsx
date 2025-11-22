@@ -35,7 +35,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
     // Chat State
     const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'bot'; content: string }[]>([]);
     const [chatInput, setChatInput] = useState("");
-    const [isChatExpanded, setIsChatExpanded] = useState(false);
+    const [chatHeight, setChatHeight] = useState(300); // Default height
+    const [isChatResizing, setIsChatResizing] = useState(false);
     const [isChatLoading, setIsChatLoading] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -43,7 +44,40 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         if (chatScrollRef.current) {
             chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
         }
-    }, [chatMessages, isChatExpanded]);
+    }, [chatMessages, chatHeight]);
+
+    const startChatResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
+        mouseDownEvent.preventDefault();
+        setIsChatResizing(true);
+    }, []);
+
+    const stopChatResizing = useCallback(() => {
+        setIsChatResizing(false);
+    }, []);
+
+    const resizeChat = useCallback(
+        (mouseMoveEvent: MouseEvent) => {
+            if (isChatResizing) {
+                const newHeight = window.innerHeight - mouseMoveEvent.clientY;
+                // Constraints: Min 100px, Max 80% of screen
+                if (newHeight > 100 && newHeight < window.innerHeight * 0.8) {
+                    setChatHeight(newHeight);
+                }
+            }
+        },
+        [isChatResizing]
+    );
+
+    useEffect(() => {
+        if (isChatResizing) {
+            window.addEventListener("mousemove", resizeChat);
+            window.addEventListener("mouseup", stopChatResizing);
+        }
+        return () => {
+            window.removeEventListener("mousemove", resizeChat);
+            window.removeEventListener("mouseup", stopChatResizing);
+        };
+    }, [isChatResizing, resizeChat, stopChatResizing]);
 
     const handleSendMessage = async () => {
         if (!chatInput.trim() || !selectedNode) return;
@@ -318,8 +352,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                         onMouseDown={startResizing}
                     />
 
-                    <div className="flex flex-col h-full">
-                        <div className="flex-1 overflow-y-auto pr-2 pb-20">
+                    <div className="flex flex-col h-full overflow-hidden">
+                        <div className="flex-1 overflow-y-auto pr-2">
                             <SheetHeader>
                                 <SheetTitle className="flex items-center gap-2 text-xl font-display text-primary">
                                     {selectedNode && getNodeIcon(selectedNode.type)}
@@ -461,20 +495,21 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                                 </div>
                             )}
                         </div>
-                    </div>
 
-                    {/* Chat Interface */}
-                    <div
-                        className={`absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-primary/20 transition-all duration-300 ease-in-out ${isChatExpanded ? 'h-[400px]' : 'h-[80px]'}`}
-                    >
-                        <div className="flex flex-col h-full p-4">
-                            {/* Expand/Collapse Handle */}
+                        {/* Chat Interface */}
+                        <div
+                            className="bg-background/95 backdrop-blur-xl border-t border-primary/20 shrink-0 relative flex flex-col transition-all duration-75 ease-out"
+                            style={{ height: `${chatHeight}px`, pointerEvents: 'auto' }}
+                        >
+                            {/* Resize Handle */}
                             <div
-                                className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-muted rounded-full cursor-pointer hover:bg-primary/50 transition-colors"
-                                onClick={() => setIsChatExpanded(!isChatExpanded)}
-                            />
+                                className="absolute top-0 left-0 right-0 h-3 -mt-1.5 cursor-ns-resize flex items-center justify-center hover:bg-primary/10 transition-colors group z-50"
+                                onMouseDown={startChatResizing}
+                            >
+                                <div className="w-12 h-1 bg-muted rounded-full group-hover:bg-primary/50 transition-colors" />
+                            </div>
 
-                            {isChatExpanded && (
+                            <div className="flex flex-col h-full p-4 pt-2">
                                 <div
                                     ref={chatScrollRef}
                                     className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2"
@@ -492,8 +527,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                                         >
                                             <div
                                                 className={`max-w-[80%] p-3 rounded-lg text-sm ${msg.role === 'user'
-                                                        ? 'bg-primary text-primary-foreground rounded-br-none'
-                                                        : 'bg-muted text-foreground rounded-bl-none'
+                                                    ? 'bg-primary text-primary-foreground rounded-br-none'
+                                                    : 'bg-muted text-foreground rounded-bl-none'
                                                     }`}
                                             >
                                                 {msg.content}
@@ -508,25 +543,27 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                                         </div>
                                     )}
                                 </div>
-                            )}
 
-                            <div className="mt-auto flex gap-2 items-center">
-                                <Input
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    onFocus={() => setIsChatExpanded(true)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                    placeholder="What do you want to know about this researcher...?"
-                                    className="flex-1 bg-background/50 border-primary/20 focus:border-primary"
-                                />
-                                <Button
-                                    size="icon"
-                                    onClick={handleSendMessage}
-                                    disabled={!chatInput.trim() || isChatLoading}
-                                    className="shrink-0"
-                                >
-                                    <Send className="w-4 h-4" />
-                                </Button>
+                                <div className="mt-auto flex gap-2 items-center shrink-0">
+                                    <Input
+                                        type="text"
+                                        name="chat-query"
+                                        autoComplete="off"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                        placeholder="What do you want to know about this researcher...?"
+                                        className="flex-1 bg-background/50 border-primary/20 focus:border-primary"
+                                    />
+                                    <Button
+                                        size="icon"
+                                        onClick={handleSendMessage}
+                                        disabled={!chatInput.trim() || isChatLoading}
+                                        className="shrink-0"
+                                    >
+                                        <Send className="w-4 h-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
