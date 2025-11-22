@@ -49,46 +49,43 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Animated background grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-20" />
-
-      {/* Radial gradient overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_50%)]" />
+    <div className="min-h-screen relative overflow-hidden">
 
       <div className="relative z-10">
-        {/* Header */}
-        <header className="border-b border-border/50 backdrop-blur-sm">
-          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center neon-glow">
-                <Brain className="w-6 h-6 text-primary" />
+        {/* Header - Only show on non-graph pages */}
+        {!isComplete && (
+          <header className="border-b border-border/50 backdrop-blur-sm">
+            <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center neon-glow">
+                  <Brain className="w-6 h-6 text-primary" />
+                </div>
+                <h1 className="text-2xl font-display font-bold neon-text">
+                  DeepScience Agent
+                </h1>
               </div>
-              <h1 className="text-2xl font-display font-bold neon-text">
-                DeepScience Agent
-              </h1>
-            </div>
 
-            {/* Context Panel - CV Upload */}
-            <label className="glass-panel rounded-xl px-4 py-3 flex items-center gap-3 min-w-[280px] cursor-pointer hover:border-primary/50 transition-all">
-              <Upload className="w-5 h-5 text-primary" />
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <div className="flex-1 flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {cvFile ? cvFile.name : "Upload CV Context"}
-                </span>
-                {cvFile && (
-                  <span className="text-xs text-accent">✓ Loaded</span>
-                )}
-              </div>
-            </label>
-          </div>
-        </header>
+              {/* Context Panel - CV Upload */}
+              <label className="glass-panel rounded-xl px-4 py-3 flex items-center gap-3 min-w-[280px] cursor-pointer hover:border-primary/50 transition-all">
+                <Upload className="w-5 h-5 text-primary" />
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {cvFile ? cvFile.name : "Upload CV Context"}
+                  </span>
+                  {cvFile && (
+                    <span className="text-xs text-accent">✓ Loaded</span>
+                  )}
+                </div>
+              </label>
+            </div>
+          </header>
+        )}
 
         {/* Main Content */}
         <main className="container mx-auto px-6 py-8">
@@ -152,7 +149,7 @@ const Index = () => {
             </div>
           ) : isComplete ? (
             // Full-Screen Graph View
-            <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
+            <div className="fixed inset-0 z-50 flex flex-col animate-fade-in">
               {/* Minimal Header */}
               <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-10 pointer-events-none">
                 <div className="flex items-center gap-3 pointer-events-auto">

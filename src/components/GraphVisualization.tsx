@@ -86,6 +86,18 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         );
     };
 
+    // Reset view when sheet is closed
+    useEffect(() => {
+        if (!isSheetOpen && fgRef.current) {
+            // Reset to initial view
+            fgRef.current.cameraPosition(
+                { x: 0, y: 0, z: 200 }, // Initial position (approximate)
+                { x: 0, y: 0, z: 0 },   // Look at center
+                2000                    // Transition duration
+            );
+        }
+    }, [isSheetOpen]);
+
     const getNodeColor = (node: GraphNode) => {
         if (node.level === 0) return '#808080'; // Gray for user
 
@@ -130,15 +142,39 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                     const size = node.type === 'person' ? 4 : 8;
                     const color = getNodeColor(node as GraphNode);
 
-                    // Sphere
-                    const geometry = new THREE.SphereGeometry(size, 64, 64);
-                    const material = new THREE.MeshLambertMaterial({
+                    // Outer glass sphere with enhanced realism
+                    const geometry = new THREE.SphereGeometry(size, 128, 128);
+                    const material = new THREE.MeshPhysicalMaterial({
                         color: color,
                         transparent: true,
-                        opacity: 0.9
+                        opacity: 0.85,
+                        transmission: 0.4,      // More glass transmission
+                        roughness: 0.05,        // Very smooth for glass
+                        metalness: 0.0,         // No metalness for pure glass
+                        clearcoat: 1.0,         // Strong clear coat
+                        clearcoatRoughness: 0.05,
+                        ior: 1.5,               // Index of refraction for glass
+                        thickness: 0.5,         // Glass thickness
+                        envMapIntensity: 1.5,   // Environment reflection
+                        emissive: color,        // Subtle inner glow
+                        emissiveIntensity: 0.15 // Low intensity glow
                     });
                     const sphere = new THREE.Mesh(geometry, material);
                     group.add(sphere);
+
+                    // Inner core for depth and realism
+                    const coreGeometry = new THREE.SphereGeometry(size * 0.5, 32, 32);
+                    const coreMaterial = new THREE.MeshPhysicalMaterial({
+                        color: color,
+                        emissive: color,
+                        emissiveIntensity: 0.6,
+                        transparent: true,
+                        opacity: 0.4,
+                        roughness: 0.2,
+                        metalness: 0.3
+                    });
+                    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+                    group.add(core);
 
                     // Label
                     const sprite = new SpriteText(node.name);
@@ -170,84 +206,86 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
             />
 
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <SheetContent side="right" className="w-[400px] sm:w-[540px] bg-background/95 backdrop-blur-xl border-l border-primary/20 overflow-y-auto">
-                    <SheetHeader>
-                        <SheetTitle className="flex items-center gap-2 text-xl font-display text-primary">
-                            {selectedNode && getNodeIcon(selectedNode.type)}
-                            {selectedNode?.name}
-                        </SheetTitle>
-                        <SheetDescription className="text-muted-foreground">
-                            {selectedNode?.type.charAt(0).toUpperCase() + selectedNode?.type.slice(1)}
-                        </SheetDescription>
-                    </SheetHeader>
+                <SheetContent side="right" className="w-[400px] sm:w-[540px] bg-background/95 backdrop-blur-xl border-l border-primary/20 overflow-visible">
+                    <div className="h-full overflow-y-auto pr-2">
+                        <SheetHeader>
+                            <SheetTitle className="flex items-center gap-2 text-xl font-display text-primary">
+                                {selectedNode && getNodeIcon(selectedNode.type)}
+                                {selectedNode?.name}
+                            </SheetTitle>
+                            <SheetDescription className="text-muted-foreground">
+                                {selectedNode?.type.charAt(0).toUpperCase() + selectedNode?.type.slice(1)}
+                            </SheetDescription>
+                        </SheetHeader>
 
-                    {selectedNode && (
-                        <div className="mt-6">
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <h4 className="text-sm font-medium text-foreground">Description</h4>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">
-                                        {selectedNode.description}
-                                    </p>
-                                </div>
+                        {selectedNode && (
+                            <div className="mt-6">
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-foreground">Description</h4>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            {selectedNode.description}
+                                        </p>
+                                    </div>
 
-                                {selectedNode.hierarchy && selectedNode.hierarchy.length > 0 && (
-                                    <div className="space-y-3">
-                                        <h4 className="text-sm font-medium text-foreground">Key People</h4>
-                                        <div className="grid gap-2">
-                                            {selectedNode.hierarchy.map((person, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border/50">
-                                                    <div>
-                                                        <p className="text-sm font-medium">{person.full_name}</p>
-                                                        <p className="text-xs text-muted-foreground">{person.role}</p>
+                                    {selectedNode.hierarchy && selectedNode.hierarchy.length > 0 && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-medium text-foreground">Key People</h4>
+                                            <div className="grid gap-2">
+                                                {selectedNode.hierarchy.map((person, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border/50">
+                                                        <div>
+                                                            <p className="text-sm font-medium">{person.full_name}</p>
+                                                            <p className="text-xs text-muted-foreground">{person.role}</p>
+                                                        </div>
+                                                        {person.contact && (
+                                                            <a href={`mailto:${person.contact}`} className="text-primary hover:text-primary/80">
+                                                                <Mail className="w-4 h-4" />
+                                                            </a>
+                                                        )}
                                                     </div>
-                                                    {person.contact && (
-                                                        <a href={`mailto:${person.contact}`} className="text-primary hover:text-primary/80">
-                                                            <Mail className="w-4 h-4" />
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {selectedNode.contacts && selectedNode.contacts.length > 0 && (
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-medium text-foreground">Contact & Links</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {selectedNode.contacts.map((contact, idx) => (
-                                                <Badge key={idx} variant="outline" className="gap-1">
-                                                    <Mail className="w-3 h-3" />
-                                                    {contact}
-                                                </Badge>
-                                            ))}
+                                    {selectedNode.contacts && selectedNode.contacts.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h4 className="text-sm font-medium text-foreground">Contact & Links</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedNode.contacts.map((contact, idx) => (
+                                                    <Badge key={idx} variant="outline" className="gap-1">
+                                                        <Mail className="w-3 h-3" />
+                                                        {contact}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {selectedNode.sources && selectedNode.sources.length > 0 && (
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-medium text-foreground">Sources</h4>
-                                        <div className="flex flex-col gap-2">
-                                            {selectedNode.sources.map((source, idx) => (
-                                                <a
-                                                    key={idx}
-                                                    href={source}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-2 text-xs text-primary hover:underline truncate"
-                                                >
-                                                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                                                    {source}
-                                                </a>
-                                            ))}
+                                    {selectedNode.sources && selectedNode.sources.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h4 className="text-sm font-medium text-foreground">Sources</h4>
+                                            <div className="flex flex-col gap-2">
+                                                {selectedNode.sources.map((source, idx) => (
+                                                    <a
+                                                        key={idx}
+                                                        href={source}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-2 text-xs text-primary hover:underline truncate"
+                                                    >
+                                                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                                        {source}
+                                                    </a>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </SheetContent>
             </Sheet>
 
@@ -268,7 +306,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                     )}
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 };
 

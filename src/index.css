@@ -9,33 +9,41 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Minimalist Futuristic Theme - Aquamarine & Sky Blue */
-    
+
     /* Background: Deepest Void Blue */
-    --background: 222 47% 11%; /* #0f172a - Slate 900 */
-    --foreground: 180 100% 97%; /* #e0f2f1 - Teal 50 */
+    --background: 222 50% 3%;
+    /* Almost black with blue hint */
+    --foreground: 180 20% 92%;
+    /* Softer white */
 
-    /* Cards & Surfaces: Slightly lighter deep blue */
-    --card: 217 33% 17%; /* #1e293b - Slate 800 */
-    --card-foreground: 180 100% 97%;
+    /* Cards & Surfaces: Very dark */
+    --card: 217 40% 8%;
+    /* Darker card */
+    --card-foreground: 180 20% 92%;
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 180 100% 97%;
+    --popover: 217 40% 8%;
+    --popover-foreground: 180 20% 92%;
 
-    /* Primary: Electric Aquamarine */
-    --primary: 173 80% 40%; /* #14b8a6 - Teal 500 */
-    --primary-foreground: 222 47% 11%;
+    /* Primary: Muted Aquamarine */
+    --primary: 173 60% 35%;
+    /* Darker teal */
+    --primary-foreground: 222 50% 3%;
 
-    /* Secondary: Sky Blue */
-    --secondary: 199 89% 48%; /* #0ea5e9 - Sky 500 */
-    --secondary-foreground: 222 47% 11%;
+    /* Secondary: Muted Sky Blue */
+    --secondary: 199 70% 40%;
+    /* Darker sky */
+    --secondary-foreground: 222 50% 3%;
 
-    /* Muted: Cool Gray/Blue */
-    --muted: 215 25% 27%; /* #334155 - Slate 700 */
-    --muted-foreground: 215 20% 65%; /* #94a3b8 - Slate 400 */
+    /* Muted: Very dark gray/blue */
+    --muted: 215 30% 15%;
+    /* Much darker muted */
+    --muted-foreground: 215 15% 55%;
+    /* Darker muted text */
 
-    /* Accent: Bright Cyan */
-    --accent: 189 94% 43%; /* #06b6d4 - Cyan 500 */
-    --accent-foreground: 222 47% 11%;
+    /* Accent: Subtle Cyan */
+    --accent: 189 80% 38%;
+    /* Darker accent */
+    --accent-foreground: 222 50% 3%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
@@ -45,12 +53,13 @@ All colors MUST be HSL.
     --input: 217 33% 17%;
     --ring: 173 80% 40%;
 
-    --radius: 0.5rem; /* Sharper corners for futuristic look */
+    --radius: 0.5rem;
+    /* Sharper corners for futuristic look */
 
     /* Glassmorphism effects */
     --glass-bg: 217 33% 17% / 0.4;
     --glass-border: 173 80% 40% / 0.2;
-    
+
     /* Neon glow */
     --glow-primary: 173 80% 40%;
     --glow-accent: 199 89% 48%;
@@ -61,7 +70,6 @@ All colors MUST be HSL.
 }
 
 @layer base {
-  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Outfit:wght@300;400;500;600&display=swap');
 
   * {
     @apply border-border;
@@ -69,11 +77,27 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-body;
-    font-family: 'Outfit', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    background-color: hsl(210 60% 12%);
+    background-image:
+      radial-gradient(ellipse at 50% 30%, hsl(180 50% 22% / 0.5), transparent 70%),
+      radial-gradient(circle at 50% 50%, hsl(210 55% 17% / 0.7), hsl(210 60% 12%) 80%),
+      radial-gradient(at 20% 80%, hsl(173 45% 15% / 0.4), transparent),
+      radial-gradient(at 80% 20%, hsl(199 50% 17% / 0.4), transparent),
+      linear-gradient(hsla(180, 60%, 50%, 0.15) 3px, transparent 3px),
+      linear-gradient(90deg, hsla(180, 60%, 50%, 0.15) 3px, transparent 3px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 80px 80px, 80px 80px;
+    min-height: 100vh;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Rajdhani', sans-serif;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    font-weight: 600;
   }
 }
 
@@ -86,12 +110,12 @@ All colors MUST be HSL.
 
   .neon-glow {
     box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.3),
-                0 0 40px hsl(var(--glow-primary) / 0.1);
+      0 0 40px hsl(var(--glow-primary) / 0.1);
   }
 
   .neon-text {
     text-shadow: 0 0 10px hsl(var(--glow-primary) / 0.5),
-                 0 0 20px hsl(var(--glow-primary) / 0.3);
+      0 0 20px hsl(var(--glow-primary) / 0.3);
   }
 
   .terminal-scroll {
