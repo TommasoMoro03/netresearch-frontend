@@ -16,9 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 interface GraphVisualizationProps {
     data: GraphData;
     userName?: string;
+    runId: string;
 }
 
-const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, userName }) => {
+const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, userName, runId }) => {
     const fgRef = useRef<any>();
     const { toast } = useToast();
     const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -110,10 +111,14 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, userName 
         }
 
         try {
-            const response = await sendMessage(userMsg, selectedNode.name);
+            const response = await sendMessage(userMsg, selectedNode.name, runId, selectedNode.id);
             setChatMessages(prev => [...prev, { role: 'bot', content: response.content }]);
         } catch (error) {
             console.error("Failed to send message", error);
+            setChatMessages(prev => [...prev, {
+                role: 'bot',
+                content: "Sorry, I encountered an error. Please try again."
+            }]);
         } finally {
             setIsChatLoading(false);
         }
@@ -123,7 +128,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, userName 
         if (!selectedNode) return;
         setEmailStep('generating');
         try {
-            const response = await generateEmail(type, selectedNode.name);
+            const response = await generateEmail(type, selectedNode.name, runId, selectedNode.id);
             setGeneratedEmail(response.content);
             setEmailStep('editing');
         } catch (error) {

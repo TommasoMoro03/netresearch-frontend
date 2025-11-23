@@ -247,17 +247,32 @@ export const getAgentStatus = async (runId: string): Promise<AgentStatusResponse
     };
 };
 
-// Generate email (mock implementation - can be replaced with real backend endpoint if available)
-export const generateEmail = async (type: 'reach_out' | 'colab', nodeName: string): Promise<{ content: string }> => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const content = type === 'reach_out'
-                ? `Dear ${nodeName},\n\nI recently came across your work on [Topic] and found it incredibly inspiring. I would love to connect and learn more about your current research directions.\n\nBest regards,\n[Your Name]`
-                : `Dear ${nodeName},\n\nI am writing to propose a potential collaboration regarding [Topic]. Given your expertise in this field, I believe our combined efforts could lead to significant breakthroughs.\n\nBest regards,\n[Your Name]`;
+// Generate email with context from backend
+export const generateEmail = async (
+    type: 'reach_out' | 'colab',
+    nodeName: string,
+    runId: string,
+    nodeId?: string
+): Promise<{ content: string }> => {
+    const requestBody = {
+        type,
+        run_id: runId,
+        node_id: nodeId
+    };
 
-            resolve({ content });
-        }, 2000);
+    const response = await fetch(`${API_BASE_URL}/email/generate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
     });
+
+    if (!response.ok) {
+        throw new Error(`Failed to generate email: ${response.statusText}`);
+    }
+
+    return await response.json();
 };
 
 // Send email (mock implementation - can be replaced with real backend endpoint if available)
@@ -270,18 +285,26 @@ export const sendEmail = async (content: string): Promise<{ success: boolean }> 
     });
 };
 
-export const sendMessage = async (text: string, nodeName: string): Promise<{ content: string }> => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const responses = [
-                `Based on my analysis of ${nodeName}'s work, I can tell you that...`,
-                `${nodeName} has primarily focused on this area. Specifically...`,
-                `That's an interesting question. ${nodeName}'s latest paper addresses this by...`
-            ];
-            const content = responses[Math.floor(Math.random() * responses.length)];
-            resolve({ content });
-        }, 1500);
+export const sendMessage = async (text: string, nodeName: string, runId: string, nodeId?: string): Promise<{ content: string }> => {
+    const requestBody = {
+        message: text,
+        run_id: runId,
+        node_id: nodeId
+    };
+
+    const response = await fetch(`${API_BASE_URL}/chat/message`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
     });
+
+    if (!response.ok) {
+        throw new Error(`Failed to send message: ${response.statusText}`);
+    }
+
+    return await response.json();
 };
 
 // Get all past runs from database
