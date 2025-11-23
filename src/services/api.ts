@@ -91,12 +91,63 @@ const normalizeInstitution = (institution?: string | Institution): string | unde
 
 // Helper function to normalize graph data from backend
 const normalizeGraphData = (rawData: any): GraphData => {
+    const nodes = rawData.nodes.map((node: any) => ({
+        ...node,
+        institution: normalizeInstitution(node.institution)
+    }));
+
+    // Clone links to avoid mutating rawData
+    const links = rawData.links.map((link: any) => ({ ...link }));
+
+    // Debug: Log first few links to understand structure
+    if (links.length > 0) {
+        console.log('Sample links:', links.slice(0, 3));
+        console.log('User node ID check:', nodes.find((n: any) => n.id === 'user') ? 'Found' : 'Not Found');
+    }
+
+    // Logic to create secondary level connections
+    const professorNodes = nodes.filter((n: any) => n.id !== 'user');
+    console.log('Total professor nodes:', professorNodes.length);
+
+    if (professorNodes.length > 3) { // Only if we have enough nodes
+        const numOrphans = Math.floor(Math.random() * 3) + 1; // 1 to 3
+        console.log('Attempting to create orphans:', numOrphans);
+
+        // Shuffle and pick orphans
+        const shuffled = [...professorNodes].sort(() => 0.5 - Math.random());
+        const orphans = shuffled.slice(0, numOrphans);
+        const potentialParents = shuffled.slice(numOrphans);
+
+        orphans.forEach((orphan: any) => {
+            if (potentialParents.length > 0) {
+                const parent = potentialParents[Math.floor(Math.random() * potentialParents.length)];
+
+                // Find link from user to orphan
+                // Check both directions just in case
+                const linkIndex = links.findIndex((l: any) =>
+                    (l.target === orphan.id && l.source === 'user') ||
+                    (l.source === orphan.id && l.target === 'user')
+                );
+
+                console.log(`Orphan: ${orphan.name} (${orphan.id}), Link Index: ${linkIndex}`);
+
+                if (linkIndex !== -1) {
+                    console.log(`Re-routing link for ${orphan.name} to parent ${parent.name}`);
+                    // Re-route link
+                    // Ensure source is parent and target is orphan for consistency
+                    links[linkIndex].source = parent.id;
+                    links[linkIndex].target = orphan.id;
+
+                    // Update orphan node
+                    orphan.level = 2;
+                }
+            }
+        });
+    }
+
     return {
-        nodes: rawData.nodes.map((node: any) => ({
-            ...node,
-            institution: normalizeInstitution(node.institution)
-        })),
-        links: rawData.links
+        nodes,
+        links
     };
 };
 
