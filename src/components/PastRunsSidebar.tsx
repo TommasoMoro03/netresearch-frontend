@@ -123,7 +123,7 @@ export const PastRunsSidebar = ({ onRunClick }: PastRunsSidebarProps) => {
           className="w-full border-red-500/50 text-red-500 hover:bg-red-500/10 hover:border-red-500"
         >
           <Trash2 className="w-4 h-4 mr-2" />
-          {isResetting ? "Resetting..." : "Reset Database"}
+          {isResetting ? "Resetting..." : "Clean History"}
         </Button>
       </div>
     </div>
