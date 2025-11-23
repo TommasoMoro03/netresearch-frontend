@@ -14,9 +14,10 @@ import SpriteText from 'three-spritetext';
 
 interface GraphVisualizationProps {
     data: GraphData;
+    userName?: string;
 }
 
-const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
+const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, userName }) => {
     const fgRef = useRef<any>();
     const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
     const [selectedLink, setSelectedLink] = useState<GraphLink | null>(null);
@@ -335,7 +336,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
                     group.add(core);
 
                     // Label
-                    const sprite = new SpriteText(node.name);
+                    const displayName = node.id === 'user' && userName ? userName : node.name;
+                    const sprite = new SpriteText(displayName);
                     sprite.color = '#ffffff';
                     sprite.textHeight = 2;
                     sprite.position.y = size + 2;

@@ -239,7 +239,7 @@ const Index = () => {
               <div className="flex-1 flex items-center justify-center relative">
                 {graphData ? (
                   <>
-                    <GraphVisualization data={graphData} />
+                    <GraphVisualization data={graphData} userName={userName} />
                   </>
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
