@@ -334,6 +334,7 @@ const Index = () => {
                 <ReasoningConsole
                   runId={runId}
                   onComplete={handleDiscoveryComplete}
+                  maxNodes={parseInt(maxNodes)}
                 />
               )}
             </div>
