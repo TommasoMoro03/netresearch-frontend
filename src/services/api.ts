@@ -15,15 +15,15 @@ export interface Paper {
     topic?: string;
 }
 
-export interface BasicProfessor {
-    name: string;
-    institution: string | null;
-    description?: string;
-}
-
 export interface Institution {
     id: string;
     name: string;
+}
+
+export interface BasicProfessor {
+    name: string;
+    institution: Institution | null;
+    description?: string;
 }
 
 export interface GraphNode {

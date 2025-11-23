@@ -16,21 +16,33 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
     const scrollRef = useRef<HTMLDivElement>(null);
     const pollingInterval = useRef<NodeJS.Timeout>();
 
+    const lastActiveStepId = useRef<string | null>(null);
+    const isAutoExpanded = useRef<boolean>(false);
+
     // Poll for updates
     useEffect(() => {
         const poll = async () => {
             try {
                 const response = await getAgentStatus(runId);
+                console.log('Poll response:', response);
+                console.log('Steps received:', response.steps);
+
                 setSteps(response.steps);
 
-                // Auto-expand the current running step
-                const currentStep = response.steps.find(s => s.status === "in_progress");
-                if (currentStep) {
-                    setExpandedSteps(prev => {
-                        const newSet = new Set(prev);
-                        newSet.add(currentStep.step_id);
-                        return newSet;
-                    });
+                // Auto-expand logic: Only expand the currently in_progress step
+                const activeStep = response.steps.find(s => s.status === "in_progress");
+
+                if (activeStep) {
+                    // New active step detected - auto-expand it and collapse all others
+                    if (activeStep.step_id !== lastActiveStepId.current) {
+                        lastActiveStepId.current = activeStep.step_id;
+                        isAutoExpanded.current = true;
+                        setExpandedSteps(new Set([activeStep.step_id]));
+                    }
+                } else if (isAutoExpanded.current) {
+                    // No active step and it was auto-expanded - collapse it
+                    isAutoExpanded.current = false;
+                    setExpandedSteps(new Set());
                 }
 
                 if (response.status === "completed" && response.graph_data) {
@@ -64,6 +76,8 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
     }, [steps]);
 
     const toggleExpand = (stepId: string) => {
+        // Mark that this is a manual expansion, not auto
+        isAutoExpanded.current = false;
         setExpandedSteps(prev => {
             const newSet = new Set(prev);
             if (newSet.has(stepId)) {
@@ -87,11 +101,12 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
     return (
         <div className="w-full max-w-3xl mx-auto space-y-4 p-4">
             {steps.map((step, index) => {
-                const isExpanded = expandedSteps.has(step.step_id) || step.status === "in_progress";
+                const isExpanded = expandedSteps.has(step.step_id);
                 const isLast = index === steps.length - 1;
 
-                return (
-                    <div key={step.step_id} className="relative">
+                try {
+                    return (
+                        <div key={step.step_id} className="relative">
                         {/* Connector Line */}
                         {!isLast && (
                             <div className="absolute left-[19px] top-10 bottom-[-16px] w-px bg-border/50" />
@@ -118,8 +133,11 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
                             {/* Content */}
                             <div className="flex-1 min-w-0 pt-1">
                                 <div
-                                    className="flex items-center gap-2 cursor-pointer group"
-                                    onClick={() => toggleExpand(step.step_id)}
+                                    className={cn(
+                                        "flex items-center gap-2",
+                                        step.status === "done" && "cursor-pointer group"
+                                    )}
+                                    onClick={() => step.status === "done" && toggleExpand(step.step_id)}
                                 >
                                     <h3 className={cn(
                                         "font-medium text-sm",
@@ -135,7 +153,7 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
                                 </div>
 
                                 {/* Details & Content (Collapsible) */}
-                                {isExpanded && (
+                                {(isExpanded || step.status === "in_progress") && (
                                     <div className="mt-3 space-y-4 animate-in slide-in-from-top-2 duration-200">
                                         {/* Details Badges (Legacy) */}
                                         {step.details && Object.keys(step.details).length > 0 && (
@@ -171,7 +189,11 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
                                         {step.papers && step.papers.length > 0 && (
                                             <div className="space-y-2">
                                                 {step.papers.map((paper, idx) => (
-                                                    <Card key={idx} className="p-3 hover:bg-muted/50 transition-colors border-border/50 group">
+                                                    <Card
+                                                        key={idx}
+                                                        className="p-3 hover:bg-muted/50 transition-colors border-border/50 group animate-in fade-in slide-in-from-left-3 duration-300"
+                                                        style={{ animationDelay: `${idx * 50}ms` }}
+                                                    >
                                                         <div className="flex justify-between items-start gap-2">
                                                             <div>
                                                                 <h4 className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors">
@@ -205,29 +227,45 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
                                         {/* Professors (Extraction Step) */}
                                         {step.professors && step.professors.length > 0 && (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                {step.professors.map((prof, idx) => (
-                                                    <Card key={idx} className="p-3 hover:bg-muted/50 transition-colors border-border/50">
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="mt-0.5 p-1.5 rounded-md bg-primary/10 text-primary">
-                                                                <User className="w-4 h-4" />
+                                                {step.professors.map((prof, idx) => {
+                                                    // Defensive: Log the professor object to help debug
+                                                    console.log('Rendering professor:', prof);
+
+                                                    // Defensive: Get institution name safely
+                                                    const institutionName = prof.institution
+                                                        ? (typeof prof.institution === 'string'
+                                                            ? prof.institution
+                                                            : prof.institution?.name || 'Unknown')
+                                                        : null;
+
+                                                    return (
+                                                        <Card
+                                                            key={`prof-${idx}-${prof.name}`}
+                                                            className="p-3 hover:bg-muted/50 transition-colors border-border/50 animate-in fade-in slide-in-from-left-3 duration-300"
+                                                            style={{ animationDelay: `${idx * 50}ms` }}
+                                                        >
+                                                            <div className="flex items-start gap-3">
+                                                                <div className="mt-0.5 p-1.5 rounded-md bg-primary/10 text-primary">
+                                                                    <User className="w-4 h-4" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-medium">{prof.name || 'Unknown Professor'}</p>
+                                                                    {institutionName && (
+                                                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                                                            <Building2 className="w-3 h-3" />
+                                                                            {institutionName}
+                                                                        </p>
+                                                                    )}
+                                                                    {prof.description && (
+                                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                                            {prof.description}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <p className="text-sm font-medium">{prof.name}</p>
-                                                                {prof.institution && (
-                                                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                                                        <Building2 className="w-3 h-3" />
-                                                                        {prof.institution}
-                                                                    </p>
-                                                                )}
-                                                                {prof.description && (
-                                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                                        {prof.description}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </Card>
-                                                ))}
+                                                        </Card>
+                                                    );
+                                                })}
                                             </div>
                                         )}
 
@@ -265,6 +303,15 @@ export const ReasoningConsole = ({ runId, onComplete }: ReasoningConsoleProps) =
                         </div>
                     </div>
                 );
+                } catch (error) {
+                    console.error('Error rendering step:', step.step_id, error);
+                    return (
+                        <div key={step.step_id} className="p-4 bg-red-50 border border-red-200 rounded">
+                            <p className="text-red-600 text-sm">Error rendering step: {step.step_id}</p>
+                            <p className="text-xs text-red-500">{String(error)}</p>
+                        </div>
+                    );
+                }
             })}
             <div ref={scrollRef} />
         </div>
