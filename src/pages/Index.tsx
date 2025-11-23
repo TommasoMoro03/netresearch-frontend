@@ -169,7 +169,7 @@ const Index = () => {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 flex-1">
                       <Database className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Max Connections:</span>
+                      <span className="text-sm text-muted-foreground">Connections:</span>
                       <Select value={maxNodes} onValueChange={setMaxNodes}>
                         <SelectTrigger className="w-24 bg-input/50 border-border/50">
                           <SelectValue />
